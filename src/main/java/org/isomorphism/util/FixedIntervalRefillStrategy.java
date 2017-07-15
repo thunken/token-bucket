@@ -19,6 +19,8 @@ import java.util.concurrent.TimeUnit;
 
 import com.google.common.base.Ticker;
 
+import lombok.Synchronized;
+
 /**
  * A token bucket refill strategy that will provide N tokens for a token bucket
  * to consume every T units of time. The tokens are refilled in bursts rather
@@ -54,7 +56,8 @@ public class FixedIntervalRefillStrategy implements TokenBucketImpl.RefillStrate
 	}
 
 	@Override
-	public synchronized long refill() {
+	@Synchronized
+	public long refill() {
 		long now = ticker.read();
 		if (now < nextRefillTime) {
 			return 0;

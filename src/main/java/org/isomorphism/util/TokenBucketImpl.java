@@ -20,6 +20,8 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.util.concurrent.TimeUnit;
 
+import lombok.Synchronized;
+
 /**
  * A token bucket implementation that is of a leaky bucket in the sense that it
  * has a finite capacity and any added tokens that would exceed this capacity
@@ -73,7 +75,8 @@ class TokenBucketImpl implements TokenBucket {
 	 * @return The current number of tokens in the bucket.
 	 */
 	@Override
-	public synchronized long getNumTokens() {
+	@Synchronized
+	public long getNumTokens() {
 		// Give the refill strategy a chance to add tokens if it needs to so
 		// that we have an accurate
 		// count.
@@ -120,7 +123,8 @@ class TokenBucketImpl implements TokenBucket {
 	 *         otherwise.
 	 */
 	@Override
-	public synchronized boolean tryConsume(long numTokens) {
+	@Synchronized
+	public boolean tryConsume(long numTokens) {
 		checkArgument(numTokens > 0, "Number of tokens to consume must be positive");
 		checkArgument(numTokens <= capacity,
 				"Number of tokens to consume must be less than the capacity of the bucket.");
@@ -173,7 +177,8 @@ class TokenBucketImpl implements TokenBucket {
 	 *            The number of tokens to add to the bucket.
 	 */
 	@Override
-	public synchronized void refill(long numTokens) {
+	@Synchronized
+	public void refill(long numTokens) {
 		long newTokens = Math.min(capacity, Math.max(0, numTokens));
 		size = Math.max(0, Math.min(size + newTokens, capacity));
 	}
