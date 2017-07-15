@@ -15,111 +15,96 @@
  */
 package org.isomorphism.util;
 
-import com.google.common.base.Ticker;
-import com.google.common.util.concurrent.Uninterruptibles;
-
-import java.util.concurrent.TimeUnit;
-
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
-/** Static utility methods pertaining to creating {@link TokenBucketImpl} instances. */
-public final class TokenBuckets
-{
-  private TokenBuckets() {}
+import java.util.concurrent.TimeUnit;
 
-  /** Create a new builder for token buckets. */
-  public static Builder builder()
-  {
-    return new Builder();
-  }
+import com.google.common.base.Ticker;
+import com.google.common.util.concurrent.Uninterruptibles;
 
-  public static class Builder
-  {
-    private Long capacity = null;
-    private long initialTokens = 0;
-    private TokenBucketImpl.RefillStrategy refillStrategy = null;
-    private TokenBucketImpl.SleepStrategy sleepStrategy = YIELDING_SLEEP_STRATEGY;
-    private final Ticker ticker = Ticker.systemTicker();
+/**
+ * Static utility methods pertaining to creating {@link TokenBucketImpl}
+ * instances.
+ */
+public final class TokenBuckets {
 
-    /** Specify the overall capacity of the token bucket. */
-    public Builder withCapacity(long numTokens)
-    {
-      checkArgument(numTokens > 0, "Must specify a positive number of tokens");
-      capacity = numTokens;
-      return this;
-    }
+	private TokenBuckets() {
+	}
 
-    /** Initialize the token bucket with a specific number of tokens. */
-    public Builder withInitialTokens(long numTokens)
-    {
-      checkArgument(numTokens > 0, "Must specify a positive number of tokens");
-      initialTokens = numTokens;
-      return this;
-    }
+	/** Create a new builder for token buckets. */
+	public static Builder builder() {
+		return new Builder();
+	}
 
-    /** Refill tokens at a fixed interval. */
-    public Builder withFixedIntervalRefillStrategy(long refillTokens, long period, TimeUnit unit)
-    {
-      return withRefillStrategy(new FixedIntervalRefillStrategy(ticker, refillTokens, period, unit));
-    }
+	public static class Builder {
+		private Long capacity = null;
+		private long initialTokens = 0;
+		private TokenBucketImpl.RefillStrategy refillStrategy = null;
+		private TokenBucketImpl.SleepStrategy sleepStrategy = YIELDING_SLEEP_STRATEGY;
+		private final Ticker ticker = Ticker.systemTicker();
 
-    /** Use a user defined refill strategy. */
-    public Builder withRefillStrategy(TokenBucket.RefillStrategy refillStrategy)
-    {
-      this.refillStrategy = checkNotNull(refillStrategy);
-      return this;
-    }
+		/** Specify the overall capacity of the token bucket. */
+		public Builder withCapacity(long numTokens) {
+			checkArgument(numTokens > 0, "Must specify a positive number of tokens");
+			capacity = numTokens;
+			return this;
+		}
 
-    /** Use a sleep strategy that will always attempt to yield the CPU to other processes. */
-    public Builder withYieldingSleepStrategy()
-    {
-      return withSleepStrategy(YIELDING_SLEEP_STRATEGY);
-    }
+		/** Initialize the token bucket with a specific number of tokens. */
+		public Builder withInitialTokens(long numTokens) {
+			checkArgument(numTokens > 0, "Must specify a positive number of tokens");
+			initialTokens = numTokens;
+			return this;
+		}
 
-    /**
-     * Use a sleep strategy that will not yield the CPU to other processes.  It will busy wait until more tokens become
-     * available.
-     */
-    public Builder withBusyWaitSleepStrategy()
-    {
-      return withSleepStrategy(BUSY_WAIT_SLEEP_STRATEGY);
-    }
+		/** Refill tokens at a fixed interval. */
+		public Builder withFixedIntervalRefillStrategy(long refillTokens, long period, TimeUnit unit) {
+			return withRefillStrategy(new FixedIntervalRefillStrategy(ticker, refillTokens, period, unit));
+		}
 
-    /** Use a user defined sleep strategy. */
-    public Builder withSleepStrategy(TokenBucket.SleepStrategy sleepStrategy)
-    {
-      this.sleepStrategy = checkNotNull(sleepStrategy);
-      return this;
-    }
+		/** Use a user defined refill strategy. */
+		public Builder withRefillStrategy(TokenBucket.RefillStrategy refillStrategy) {
+			this.refillStrategy = checkNotNull(refillStrategy);
+			return this;
+		}
 
-    /** Build the token bucket. */
-    public TokenBucket build()
-    {
-      checkNotNull(capacity, "Must specify a capacity");
-      checkNotNull(refillStrategy, "Must specify a refill strategy");
+		/**
+		 * Use a sleep strategy that will always attempt to yield the CPU to
+		 * other processes.
+		 */
+		public Builder withYieldingSleepStrategy() {
+			return withSleepStrategy(YIELDING_SLEEP_STRATEGY);
+		}
 
-      return new TokenBucketImpl(capacity, initialTokens, refillStrategy, sleepStrategy);
-    }
-  }
+		/**
+		 * Use a sleep strategy that will not yield the CPU to other processes.
+		 * It will busy wait until more tokens become available.
+		 */
+		public Builder withBusyWaitSleepStrategy() {
+			return withSleepStrategy(BUSY_WAIT_SLEEP_STRATEGY);
+		}
 
-  private static final TokenBucketImpl.SleepStrategy YIELDING_SLEEP_STRATEGY = new TokenBucketImpl.SleepStrategy()
-  {
-    @Override
-    public void sleep()
-    {
-      // Sleep for the smallest unit of time possible just to relinquish control
-      // and to allow other threads to run.
-      Uninterruptibles.sleepUninterruptibly(1, TimeUnit.NANOSECONDS);
-    }
-  };
+		/** Use a user defined sleep strategy. */
+		public Builder withSleepStrategy(TokenBucket.SleepStrategy sleepStrategy) {
+			this.sleepStrategy = checkNotNull(sleepStrategy);
+			return this;
+		}
 
-  private static final TokenBucketImpl.SleepStrategy BUSY_WAIT_SLEEP_STRATEGY = new TokenBucketImpl.SleepStrategy()
-  {
-    @Override
-    public void sleep()
-    {
-      // Do nothing, don't sleep.
-    }
-  };
+		/** Build the token bucket. */
+		public TokenBucket build() {
+			checkNotNull(capacity, "Must specify a capacity");
+			checkNotNull(refillStrategy, "Must specify a refill strategy");
+
+			return new TokenBucketImpl(capacity, initialTokens, refillStrategy, sleepStrategy);
+		}
+	}
+
+	private static final TokenBucketImpl.SleepStrategy YIELDING_SLEEP_STRATEGY = () -> Uninterruptibles
+			.sleepUninterruptibly(1, TimeUnit.NANOSECONDS);
+
+	private static final TokenBucketImpl.SleepStrategy BUSY_WAIT_SLEEP_STRATEGY = () -> {
+		// Do nothing, don't sleep.
+	};
+
 }

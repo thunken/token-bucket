@@ -15,146 +15,141 @@
  */
 package org.isomorphism.util;
 
-import com.google.common.base.Ticker;
-import org.junit.Test;
+import static org.junit.Assert.assertEquals;
 
 import java.util.concurrent.TimeUnit;
 
-import static org.junit.Assert.assertEquals;
+import org.junit.Test;
 
-public class FixedIntervalRefillStrategyTest
-{
-  private static final long N = 5;                     // 5 tokens
-  private static final long P = 10;                    // every 10
-  private static final TimeUnit U = TimeUnit.SECONDS;  // seconds
+import com.google.common.base.Ticker;
 
-  private final MockTicker ticker = new MockTicker();
-  private final FixedIntervalRefillStrategy strategy = new FixedIntervalRefillStrategy(ticker, N, P, U);
+public class FixedIntervalRefillStrategyTest {
 
-  @Test
-  public void testFirstRefill()
-  {
-    assertEquals(N, strategy.refill());
-  }
+	private static final long N = 5; // 5 tokens
+	private static final long P = 10; // every 10
+	private static final TimeUnit U = TimeUnit.SECONDS; // seconds
 
-  @Test
-  public void testNoRefillUntilPeriodUp()
-  {
-    strategy.refill();
+	private final MockTicker ticker = new MockTicker();
+	private final FixedIntervalRefillStrategy strategy = new FixedIntervalRefillStrategy(ticker, N, P, U);
 
-    // Another refill shouldn't come for P time units.
-    for (int i = 0; i < P - 1; i++) {
-      ticker.advance(1, U);
-      assertEquals(0, strategy.refill());
-    }
-  }
+	@Test
+	public void testFirstRefill() {
+		assertEquals(N, strategy.refill());
+	}
 
-  @Test
-  public void testRefillEveryPeriod()
-  {
-    strategy.refill();
+	@Test
+	public void testNoRefillUntilPeriodUp() {
+		strategy.refill();
 
-    ticker.advance(P, U);
-    assertEquals(N, strategy.refill());
+		// Another refill shouldn't come for P time units.
+		for (int i = 0; i < P - 1; i++) {
+			ticker.advance(1, U);
+			assertEquals(0, strategy.refill());
+		}
+	}
 
-    ticker.advance(P, U);
-    assertEquals(N, strategy.refill());
+	@Test
+	public void testRefillEveryPeriod() {
+		strategy.refill();
 
-    ticker.advance(P, U);
-    assertEquals(N, strategy.refill());
-  }
+		ticker.advance(P, U);
+		assertEquals(N, strategy.refill());
 
-  @Test
-  public void testRefillEveryOtherPeriod()
-  {
-    strategy.refill();
+		ticker.advance(P, U);
+		assertEquals(N, strategy.refill());
 
-    // Move time forward two periods, since we're skipping a period next time we should add double the tokens.
-    ticker.advance(2 * P, U);
-    assertEquals(2 * N, strategy.refill());
+		ticker.advance(P, U);
+		assertEquals(N, strategy.refill());
+	}
 
-    ticker.advance(2 * P, U);
-    assertEquals(2 * N, strategy.refill());
-  }
+	@Test
+	public void testRefillEveryOtherPeriod() {
+		strategy.refill();
 
-  @Test
-  public void testRefillOnNonEvenPeriods()
-  {
-    // The strategy is configured to refill tokens every P time units.  So we should only get refills at 0, P, 2P, 3P,
-    // etc.  Any other time should return 0 tokens.
+		// Move time forward two periods, since we're skipping a period next
+		// time we should add double the tokens.
+		ticker.advance(2 * P, U);
+		assertEquals(2 * N, strategy.refill());
 
-    // t = 0
-    assertEquals(N, strategy.refill());
+		ticker.advance(2 * P, U);
+		assertEquals(2 * N, strategy.refill());
+	}
 
-    // t = P+1
-    ticker.advance(P + 1, U);
-    assertEquals(N, strategy.refill());
+	@Test
+	public void testRefillOnNonEvenPeriods() {
+		// The strategy is configured to refill tokens every P time units. So we
+		// should only get refills at 0, P, 2P, 3P,
+		// etc. Any other time should return 0 tokens.
 
-    // t = 2P+1
-    ticker.advance(P, U);
-    assertEquals(N, strategy.refill());
+		// t = 0
+		assertEquals(N, strategy.refill());
 
-    // t = 3P
-    ticker.advance(P - 1, U);
-    assertEquals(N, strategy.refill());
+		// t = P+1
+		ticker.advance(P + 1, U);
+		assertEquals(N, strategy.refill());
 
-    // t = 4P-1
-    ticker.advance(P - 1, U);
-    assertEquals(0, strategy.refill());
+		// t = 2P+1
+		ticker.advance(P, U);
+		assertEquals(N, strategy.refill());
 
-    // t = 4P
-    ticker.advance(1, U);
-    assertEquals(N, strategy.refill());
-  }
+		// t = 3P
+		ticker.advance(P - 1, U);
+		assertEquals(N, strategy.refill());
 
-  @Test
-  public void testDurationUntilFirstRefill()
-  {
-    // A refill has never happened, so one is supposed to happen immediately.
-    assertEquals(0, strategy.getDurationUntilNextRefill(TimeUnit.SECONDS));
-  }
+		// t = 4P-1
+		ticker.advance(P - 1, U);
+		assertEquals(0, strategy.refill());
 
-  @Test
-  public void testDurationAfterFirstRefill()
-  {
-    strategy.refill();
+		// t = 4P
+		ticker.advance(1, U);
+		assertEquals(N, strategy.refill());
+	}
 
-    for (int i = 0; i < P - 1; i++) {
-      assertEquals(P - i, strategy.getDurationUntilNextRefill(TimeUnit.SECONDS));
-      ticker.advance(1, U);
-    }
-  }
+	@Test
+	public void testDurationUntilFirstRefill() {
+		// A refill has never happened, so one is supposed to happen
+		// immediately.
+		assertEquals(0, strategy.getDurationUntilNextRefill(TimeUnit.SECONDS));
+	}
 
-  @Test
-  public void testDurationAtSecondRefillTime()
-  {
-    strategy.refill();
-    ticker.advance(P, U);
+	@Test
+	public void testDurationAfterFirstRefill() {
+		strategy.refill();
 
-    assertEquals(0, strategy.getDurationUntilNextRefill(TimeUnit.SECONDS));
-  }
+		for (int i = 0; i < P - 1; i++) {
+			assertEquals(P - i, strategy.getDurationUntilNextRefill(TimeUnit.SECONDS));
+			ticker.advance(1, U);
+		}
+	}
 
-  @Test
-  public void testDurationInProperUnits()
-  {
-    strategy.refill();
+	@Test
+	public void testDurationAtSecondRefillTime() {
+		strategy.refill();
+		ticker.advance(P, U);
 
-    assertEquals(10000, strategy.getDurationUntilNextRefill(TimeUnit.MILLISECONDS));
-  }
+		assertEquals(0, strategy.getDurationUntilNextRefill(TimeUnit.SECONDS));
+	}
 
-  private static final class MockTicker extends Ticker
-  {
-    private long now = 0;
+	@Test
+	public void testDurationInProperUnits() {
+		strategy.refill();
 
-    @Override
-    public long read()
-    {
-      return now;
-    }
+		assertEquals(10000, strategy.getDurationUntilNextRefill(TimeUnit.MILLISECONDS));
+	}
 
-    public void advance(long delta, TimeUnit unit)
-    {
-      now += unit.toNanos(delta);
-    }
-  }
+	private static final class MockTicker extends Ticker {
+
+		private long now = 0;
+
+		@Override
+		public long read() {
+			return now;
+		}
+
+		public void advance(long delta, TimeUnit unit) {
+			now += unit.toNanos(delta);
+		}
+
+	}
+
 }
