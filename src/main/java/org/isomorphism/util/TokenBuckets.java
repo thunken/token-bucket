@@ -23,25 +23,33 @@ import java.util.concurrent.TimeUnit;
 import com.google.common.base.Ticker;
 import com.google.common.util.concurrent.Uninterruptibles;
 
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
+import lombok.experimental.UtilityClass;
+
 /**
  * Static utility methods pertaining to creating {@link TokenBucketImpl}
  * instances.
  */
+@UtilityClass
 public final class TokenBuckets {
-
-	private TokenBuckets() {
-	}
 
 	/** Create a new builder for token buckets. */
 	public static Builder builder() {
 		return new Builder();
 	}
 
+	@NoArgsConstructor(access = AccessLevel.PRIVATE)
 	public static class Builder {
+
 		private Long capacity = null;
+
 		private long initialTokens = 0;
+
 		private TokenBucketImpl.RefillStrategy refillStrategy = null;
+
 		private TokenBucketImpl.SleepStrategy sleepStrategy = YIELDING_SLEEP_STRATEGY;
+
 		private final Ticker ticker = Ticker.systemTicker();
 
 		/** Specify the overall capacity of the token bucket. */
@@ -53,7 +61,7 @@ public final class TokenBuckets {
 
 		/** Initialize the token bucket with a specific number of tokens. */
 		public Builder withInitialTokens(long numTokens) {
-			checkArgument(numTokens > 0, "Must specify a positive number of tokens");
+			checkArgument(numTokens >= 0, "Must specify a positive number of tokens");
 			initialTokens = numTokens;
 			return this;
 		}
