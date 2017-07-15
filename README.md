@@ -79,7 +79,7 @@ Add the dependency:
 	<dependency>
 	    <groupId>com.github.thunken</groupId>
 	    <artifactId>token-bucket</artifactId>
-	    <version>v1.7</version>
+	    <version>v2.0.0</version>
 	</dependency>
 ```
 
